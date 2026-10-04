@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 
+#include <dynamic_array.h>
+
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 struct write_buffer
@@ -15,8 +17,8 @@ struct write_buffer
 };
 struct editor_state
 {
-    unsigned short columns;
-    unsigned short rows;
+    int columns;
+    int rows;
 };
 
 void exit_error(const char *e)
@@ -43,7 +45,7 @@ void termois_raw_mode_enable(struct termios *termios)
     return;
 }
 
-int get_cursor_position(unsigned short *columns, unsigned short *rows)
+int get_cursor_position(int *columns, int *rows)
 {
     char buffer[32];
     if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
@@ -76,7 +78,7 @@ int get_cursor_position(unsigned short *columns, unsigned short *rows)
     }
     return 0;
 }
-int get_window_size(unsigned short *columns, unsigned short *rows)
+int get_window_size(int *columns, int *rows)
 {
     struct winsize window_size;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &window_size) == -1 || window_size.ws_col == 0)
@@ -181,6 +183,8 @@ int main (int argc, char **argv)
     struct termios original_termios;
     struct editor_state state;
     struct write_buffer wb;
+    wb.data = sds_da_create(sizeof(char), 0);
+    
     {
         if (tcgetattr(STDIN_FILENO, &original_termios) == -1)
         {

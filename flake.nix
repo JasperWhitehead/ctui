@@ -3,6 +3,11 @@
   inputs =
   {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
+    sds =
+    {
+      url = "github:JasperWhitehead/sds";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs = {self, nixpkgs, ...}@inputs: 
   let
@@ -22,6 +27,11 @@
           pname = "te";
           version = "1.0";
           src = ./.;
+          
+          buildInputs =
+          [
+            inputs.sds.packages.${system}.default
+          ];
           outputs =
           [
             "out"

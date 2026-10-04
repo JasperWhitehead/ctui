@@ -18,7 +18,28 @@
     },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "sds": "sds"
+      }
+    },
+    "sds": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790987333,
+        "narHash": "sha256-u2SJloATw8DIGnAoGVlrnXU2MtC9uGXp0fL5bAKXjzw=",
+        "owner": "JasperWhitehead",
+        "repo": "sds",
+        "rev": "55342bca9604040b9860a40f7dd636a04d926589",
+        "type": "github"
+      },
+      "original": {
+        "owner": "JasperWhitehead",
+        "repo": "sds",
+        "type": "github"
       }
     }
   },
