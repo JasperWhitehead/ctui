@@ -2,11 +2,11 @@
 
 #include <pthread.h>
 #include <time.h>
+#include <string.h>
 // time data
 int ctui_time_data_create(struct ctui_time_data *td)
 {
-  td->time = 0;
-  td->delta_time = 0;
+  memset(td, 0, sizeof(td));
   if (!timespec_get(&(td->time), TIME_UTC))
   {
     return 1;
@@ -20,7 +20,7 @@ int ctui_time_data_update(struct ctui_time_data *td)
   {
     return 1;
   }
-  td->delta_time = (double)(current_time.tv_sec - td->time.tv_sec) + (double)(current_time.tv_nsec - td->time.tv_nsec) / 1000000000.0
+  td->delta_time = (double)(current_time.tv_sec - td->time.tv_sec) + (double)(current_time.tv_nsec - td->time.tv_nsec) / 1000000000.0;
   td->time = current_time;
   return 0;
 }

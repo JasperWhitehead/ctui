@@ -1,9 +1,11 @@
-#include <io_buffers.h>
+#include <ctui_io_buffers.h>
 
 #include <semaphore.h>
 #include <pthread.h>
 #include <time.h>
 #include <unistd.h>
+
+#include <dynamic_array.h>
 // write thread
 void *ctui_write_thread(void *shared_data)
 {
@@ -25,9 +27,9 @@ void *ctui_write_thread(void *shared_data)
     casted_data->write_buffer_is_ready = 0;
     
     ctui_time_data_update(&(casted_data->time));
-    if (casted_data->time.time < (1/60))
+    if (casted_data->time.delta_time < (1/60))
     {
-      usleep((useconds_t)((1/60) - casted_data->time.time));
+      usleep((useconds_t)((1/60) - casted_data->time.delta_time));
     }
     
     pthread_mutex_lock(&(casted_data->write_buffer_mutex));
@@ -89,7 +91,7 @@ int ctui_write_thread_exit(struct ctui_write_thread_shared_data *shared_data, pt
 }
 int ctui_write_thread_write_buffer_ready_signal(struct ctui_write_thread_shared_data *shared_data)
 {
-  if (pthread_mutex_lock(&(casted_data->write_buffer_cond_mutex)))
+  if (pthread_mutex_lock(&(shared_data->write_buffer_cond_mutex)))
   {
     return 1;
   }
@@ -98,7 +100,7 @@ int ctui_write_thread_write_buffer_ready_signal(struct ctui_write_thread_shared_
   {
     return 1;
   }
-  if (pthread_mutex_unlock(&(casted_data->write_buffer_cond_mutex)))
+  if (pthread_mutex_unlock(&(shared_data->write_buffer_cond_mutex)))
   {
     return 1;
   }
