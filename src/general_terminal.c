@@ -1,4 +1,4 @@
-#include <general_terminal.h>
+#include <ctui_general_terminal.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,9 +8,33 @@
 #include <ctype.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <signal.h>
+#include <pthread.h>
 
-#include <dynamic_array.h>s
+#include <dynamic_array.h>
 
+volatile sig_atomic_t ctui_sigwinch_catch;
+void ctui_sigwinch_handler(int sig)
+{
+  (void)sig;
+  ctui_sigwinch_catch = 1;
+}
+int ctui_init(void)
+{
+  ctui_sigwinch_catch = 0;
+  struct sigaction sa;
+  sa.sa_handler = ctui_sigwinch_handler;
+  if (sigemptyset(&(sa.sa_mask)))
+  {
+    return 1;
+  }
+  sa.sa_flags = SA_RESTART;
+  if (sigaction(SIGWINCH, &sa, NULL) == -1)
+  {
+    return 1;
+  }
+  return 0;
+}
 int ctui_termios_exit(struct termios *original_termios)
 {
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, original_termios) == -1)
@@ -77,41 +101,21 @@ int ctui_get_window_size(int *columns, int *rows)
   (*rows) = window_size.ws_row;
   return 0;
 }
-int ctui_write_buffer_append_string(char *write_buffer, char *string, sds_da_index_t string_size)
+int ctui_get_input_buffer_size(int *buffer_size)
 {
-  if (sds_da_add(&write_buffer, string_size, sizeof(char)))
-  {
-    return 1;
-  }
-  memcpy((write_buffer + sds_da_get_size(write_buffer) - string_size), string, string_size);
-  return 0;
-}
-int ctui_editor_refresh_screen(struct editor_state *state, char *write_buffer)
-{
-  sds_da_clear(write_buffer);
-  // hide cursor, clear screen, move cursor to (1, 1)
-  ctui_write_buffer_append_string(write_buffer, "\x1b[?25l\x1b[2J\x1b[H", 13);
-  // draw rows
-  for (int i = 0; i < state->rows; i++)
-  {
-    ctui_write_buffer_append_string(write_buffer, "~\x1b[K", 4);
-    if (i < state->rows - 1)
-    {
-      ctui_write_buffer_append_string(write_buffer, "\r\n", 2);
-    }
-  }
-  // move cursor to (1, 1), unhide cursor
-  ctui_write_buffer_append_string(write_buffer, "\x1b[H\x1b[?25h", 9);
-  // write buffer
-  if (write(STDOUT_FILENO, write_buffer, sds_da_get_size(write_buffer)) == -1)
+  if (ioctl(STDIN_FILENO, FIONREAD, buffer_size))
   {
     return 1;
   }
   return 0;
 }
-int ctui_editor_read_key(char *c)
+
+/*
+void *ctui_thread_char_read(void *args)
 {
+  sds_da_create(&((struct ctui_thread_char_read_shared_data *)args)->data, sizeof(char), 4);
   int read_output;
+
   while ((read_output = read(STDIN_FILENO, c, 1)) != 1)
   {
     if ((read_output == -1) && (errno != EAGAIN))
@@ -121,14 +125,76 @@ int ctui_editor_read_key(char *c)
   }
   return 0;
 }
-int ctui_editor_proccess_key(struct editor_state *state)
+*/
+
+
+
+
+
+
+
+
+
+
+
+int ctui_write_buffer_append_string(char *write_buffer, char *string, sds_da_index_t string_size)
 {
-  char c;
-  if (ctui_editor_read_key(&c))
+  if (sds_da_add(&write_buffer, string_size, sizeof(char)))
+  {
+    return 1;
+  }
+  memcpy((write_buffer + sds_da_get_size(write_buffer) - string_size), string, string_size);
+  return 0;
+}
+int ctui_editor_refresh_screen(struct ctui_editor_state *state, char *write_buffer)
+{
+  
+  sds_da_clear(write_buffer);
+  // hide cursor, clear screen, move cursor to (1, 1)
+  ctui_write_buffer_append_string(write_buffer, "\x1b[?25l\x1b[2J\x1b[H", 13);
+  // draw rows
+  for (int i = 0; i < state->rows; i++)
+  {
+    ctui_write_buffer_append_string(write_buffer, "\u2211\x1b[K", 6);
+    if (i < state->rows - 1)
+    {
+      ctui_write_buffer_append_string(write_buffer, "\r\n", 2);
+    }
+  }
+  // move cursor to (1, 1), unhide cursor
+  ctui_write_buffer_append_string(write_buffer, "\x1b[H\x1b[?25h", 9);
+  // write buffer
+  size_t total_write = 0;
+  while (total_write != sds_da_get_size(write_buffer))
+  {
+    if ((total_write += write(STDOUT_FILENO, write_buffer + total_write, sds_da_get_size(write_buffer) - total_write)) == -1)
+    {
+      return 1;
+    }
+  }
+  return 0;
+}
+int ctui_editor_read_key(char *c)
+{
+  int read_output;
+  read_output = read(STDIN_FILENO, c, 1);
+
+  if ((read_output == -1) && (errno != EAGAIN))
   {
     return 1;
   }
 
+  return 0;
+}
+int ctui_editor_proccess_key(struct ctui_editor_state *state)
+{
+  char c = '\0';
+  int buffer_size;
+  if (ctui_editor_read_key(&c))
+  {
+    return 1;
+  }
+  
   switch (c)
   {
     case CTRL_KEY('q'):
@@ -138,7 +204,7 @@ int ctui_editor_proccess_key(struct editor_state *state)
   }
   return 0;
 }
-int ctui_editor_state_init(struct editor_state *state)
+int ctui_editor_state_init(struct ctui_editor_state *state)
 {
   if (ctui_get_window_size(&state->columns, &state->rows))
   {

@@ -8,17 +8,22 @@
 #include <sys/ioctl.h>
 
 #include <dynamic_array.h>
-#include <general_terminal.h>
+#include <ctui_general_terminal.h>
+
 
 int main (int argc, char **argv)
 {
   // state
   int loop = 1;
   struct termios original_termios;
-  struct editor_state state;
+  struct ctui_editor_state state;
   char *write_buffer;
   // startup
   {
+    if (ctui_init())
+    {
+      loop = 0;
+    }
     if (sds_da_create(&write_buffer, sizeof(char), 0))
     {
       loop = 0;
@@ -44,13 +49,22 @@ int main (int argc, char **argv)
   {
     while (loop)
     {
+      if (ctui_sigwinch_catch)
+      {
+        ctui_get_window_size(&(state.columns), &(state.rows));
+      }
       loop = !(ctui_editor_refresh_screen(&state, write_buffer) || ctui_editor_proccess_key(&state));
     }
   }
   // exit
   {
-    write(STDOUT_FILENO, "\x1b[2J\x1b[H", 7);
+    if (write(STDOUT_FILENO, "\x1b[2J\x1b[H", 7))
+    {
+      
+    }
     ctui_termios_exit(&original_termios);
   }
+  printf("columns: %d, rows: %d\n", state.columns, state.rows);
+  printf("%d\n", (int)strlen("\u0077"));
   return 0;
 }

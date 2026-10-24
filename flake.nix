@@ -1,5 +1,5 @@
 {
-  description = "Text Editor";
+  description = "ctui";
   inputs =
   {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
@@ -24,7 +24,7 @@
       {
         default = pkgs.stdenv.mkDerivation
         {
-          pname = "te";
+          pname = "ctui";
           version = "1.0";
           src = ./.;
           

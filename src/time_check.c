@@ -1,4 +1,4 @@
-#include <time_check.h>
+#include <ctui_time_check.h>
 
 #include <pthread.h>
 #include <time.h>
