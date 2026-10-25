@@ -1,5 +1,5 @@
 build/te: src/main.c build/libctui.a
-	gcc src/main.c -Iinclude -Lbuild -lsds -lctui -lm -lpthread -obuild/te
+	gcc src/main.c -Iinclude -Lbuild -lctui -lsds -lm -lpthread -obuild/te
 
 build/libctui.a: build/general_terminal.o build/io_control.o build/time_check.o
 	ar rcs build/libctui.a build/general_terminal.o build/io_control.o build/time_check.o

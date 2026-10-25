@@ -5,7 +5,6 @@
 #include <time.h>
 #include <unistd.h>
 
-
 #include <dynamic_array.h>
 
 int ctui_write_buffer_create(struct ctui_write_buffer *wb)

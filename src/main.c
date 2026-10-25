@@ -67,7 +67,10 @@ int main (int argc, char **argv)
       loop = !ctui_editor_proccess_key(&terminal_size);
       if (ctui_write_buffer_ready_to_write(&wb, td.delta_time))
       {
-        loop = !ctui_editor_refresh_screen(&terminal_size, &(wb.data));
+        if (ctui_editor_refresh_screen(&terminal_size, &(wb.data)))
+        {
+          loop = 0;
+        }
         if (ctui_write_buffer_write(&wb))
         {
           loop = 0;
@@ -77,7 +80,7 @@ int main (int argc, char **argv)
   }
   // exit
   {
-    if (write(STDOUT_FILENO, "\x1b[2J\x1b[H", 7))
+    if (write(STDOUT_FILENO, "\x1b[2J\x1b[3J\x1b[H", 11))
     {
       
     }

@@ -152,17 +152,18 @@ int ctui_write_buffer_append_string(char **write_buffer, char *string, sds_da_in
   {
     return 1;
   }
-  memcpy((*write_buffer + sds_da_get_size(write_buffer) - string_size), string, string_size);
+  memcpy(((*write_buffer) + sds_da_get_size(*write_buffer) - string_size), string, string_size);
   return 0;
 }
 int ctui_editor_refresh_screen(struct ctui_terminal_size *terminal_size, char **write_buffer)
 {
   // hide cursor, clear screen, move cursor to (1, 1)
-  ctui_write_buffer_append_string(write_buffer, "\x1b[?25l\x1b[2J\x1b[H", 13);
+  ctui_write_buffer_append_string(write_buffer, "\x1b[?25l\x1b[3J\x1b[H", 17);
   // draw rows
-  for (int i = 0; i < terminal_size->rows; i++)
+  for (int i = 0; i < terminal_size->rows / 2; i++)
   {
     ctui_write_buffer_append_string(write_buffer, "\u2211\x1b[K", 6);
+    
     if (i < terminal_size->rows - 1)
     {
       ctui_write_buffer_append_string(write_buffer, "\r\n", 2);
