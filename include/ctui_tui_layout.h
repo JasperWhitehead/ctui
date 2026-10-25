@@ -21,8 +21,7 @@ struct ctui_object
 struct ctui_ui_state
 {
   struct sds_id_da object_manager;
-  int rows;
-  int columns;
+  struct ctui_terminal_state terminal_state;
 };
 int ctui_ui_state_create(struct ctui_ui_state *create);
 

@@ -12,14 +12,23 @@
 #include <pthread.h>
 
 #include <dynamic_array.h>
-
+// terminal size
+int ctui_terminal_size_init(struct ctui_terminal_size *terminal_size)
+{
+  if (ctui_get_window_size(&terminal_size->columns, &terminal_size->rows))
+  {
+    return 1;
+  }
+  return 0;
+}
+// sigwinch
 volatile sig_atomic_t ctui_sigwinch_catch;
 void ctui_sigwinch_handler(int sig)
 {
   (void)sig;
   ctui_sigwinch_catch = 1;
 }
-int ctui_init(void)
+int ctui_sigwinch_init(void)
 {
   ctui_sigwinch_catch = 0;
   struct sigaction sa;
@@ -137,41 +146,31 @@ void *ctui_thread_char_read(void *args)
 
 
 
-int ctui_write_buffer_append_string(char *write_buffer, char *string, sds_da_index_t string_size)
+int ctui_write_buffer_append_string(char **write_buffer, char *string, sds_da_index_t string_size)
 {
-  if (sds_da_add(&write_buffer, string_size, sizeof(char)))
+  if (sds_da_add(write_buffer, string_size, sizeof(char)))
   {
     return 1;
   }
-  memcpy((write_buffer + sds_da_get_size(write_buffer) - string_size), string, string_size);
+  memcpy((*write_buffer + sds_da_get_size(write_buffer) - string_size), string, string_size);
   return 0;
 }
-int ctui_editor_refresh_screen(struct ctui_editor_state *state, char *write_buffer)
+int ctui_editor_refresh_screen(struct ctui_terminal_size *terminal_size, char **write_buffer)
 {
-  
-  sds_da_clear(write_buffer);
   // hide cursor, clear screen, move cursor to (1, 1)
   ctui_write_buffer_append_string(write_buffer, "\x1b[?25l\x1b[2J\x1b[H", 13);
   // draw rows
-  for (int i = 0; i < state->rows; i++)
+  for (int i = 0; i < terminal_size->rows; i++)
   {
     ctui_write_buffer_append_string(write_buffer, "\u2211\x1b[K", 6);
-    if (i < state->rows - 1)
+    if (i < terminal_size->rows - 1)
     {
       ctui_write_buffer_append_string(write_buffer, "\r\n", 2);
     }
   }
   // move cursor to (1, 1), unhide cursor
   ctui_write_buffer_append_string(write_buffer, "\x1b[H\x1b[?25h", 9);
-  // write buffer
-  size_t total_write = 0;
-  while (total_write != sds_da_get_size(write_buffer))
-  {
-    if ((total_write += write(STDOUT_FILENO, write_buffer + total_write, sds_da_get_size(write_buffer) - total_write)) == -1)
-    {
-      return 1;
-    }
-  }
+
   return 0;
 }
 int ctui_editor_read_key(char *c)
@@ -186,7 +185,7 @@ int ctui_editor_read_key(char *c)
 
   return 0;
 }
-int ctui_editor_proccess_key(struct ctui_editor_state *state)
+int ctui_editor_proccess_key(struct ctui_terminal_size *terminal_size)
 {
   char c = '\0';
   int buffer_size;
@@ -201,14 +200,6 @@ int ctui_editor_proccess_key(struct ctui_editor_state *state)
     {
       return 1;
     }
-  }
-  return 0;
-}
-int ctui_editor_state_init(struct ctui_editor_state *state)
-{
-  if (ctui_get_window_size(&state->columns, &state->rows))
-  {
-    return 1;
   }
   return 0;
 }

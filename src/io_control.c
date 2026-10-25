@@ -1,4 +1,4 @@
-#include <ctui_io_buffers.h>
+#include <ctui_io_control.h>
 
 #include <semaphore.h>
 #include <pthread.h>
@@ -6,6 +6,43 @@
 #include <unistd.h>
 
 #include <dynamic_array.h>
+
+int ctui_write_buffer_create(struct ctui_write_buffer *wb)
+{
+  if (sds_da_create(&(wb->data), sizeof(char), 0))
+  {
+    return 1;
+  }
+  wb->time_since_last_write = 0;
+  wb->frame_rate = 30;
+  return 0;
+}
+int ctui_write_buffer_write(struct ctui_write_buffer *wb)
+{
+  size_t total_write = 0;
+  while (total_write < sds_da_get_size(wb->data))
+  {
+    size_t writen_amount = write(STDOUT_FILENO, wb->data + total_write, sds_da_get_size(wb->data) - total_write);
+    if (writen_amount == -1)
+    {
+      return 1;
+    }
+    total_write += writen_amount;
+  }
+  sds_da_clear(wb->data);
+  wb->time_since_last_write = 0;
+  return 0;
+}
+int ctui_write_buffer_ready_to_write(struct ctui_write_buffer *wb, double delta_time)
+{
+  wb->time_since_last_write += delta_time;
+  if (wb->time_since_last_write > 1 / (wb->frame_rate))
+  {
+    return 1;
+  }
+  return 0;
+}
+/*
 // write thread
 void *ctui_write_thread(void *shared_data)
 {
@@ -107,7 +144,7 @@ int ctui_write_thread_write_buffer_ready_signal(struct ctui_write_thread_shared_
   return 0;
 }
 // read thread
-/*
+
 int ctui_io_threads_init(struct ctui_io_threads_shared_data *shared_data)
 {
 }

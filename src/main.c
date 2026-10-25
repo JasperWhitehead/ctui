@@ -9,22 +9,27 @@
 
 #include <dynamic_array.h>
 #include <ctui_general_terminal.h>
-
+#include <ctui_io_control.h>
 
 int main (int argc, char **argv)
 {
   // state
   int loop = 1;
   struct termios original_termios;
-  struct ctui_editor_state state;
-  char *write_buffer;
+  struct ctui_terminal_size terminal_size;
+  struct ctui_write_buffer wb;
+  struct ctui_time_data td;
   // startup
   {
-    if (ctui_init())
+    if (ctui_time_data_create(&td))
     {
       loop = 0;
     }
-    if (sds_da_create(&write_buffer, sizeof(char), 0))
+    if (ctui_write_buffer_create(&wb))
+    {
+      loop = 0;
+    }
+    if (ctui_sigwinch_init())
     {
       loop = 0;
     }
@@ -35,7 +40,7 @@ int main (int argc, char **argv)
     struct termios raw = original_termios;
     ctui_termois_raw_mode_enable(&raw);
 
-    if (ctui_editor_state_init(&state))
+    if (ctui_terminal_size_init(&terminal_size))
     {
       loop = 0;
     }
@@ -44,16 +49,30 @@ int main (int argc, char **argv)
     {
       loop = 0;
     }
+
   }
   // loop
   {
     while (loop)
     {
+      if (ctui_time_data_update(&td))
+      {
+        loop = 0;
+      }
       if (ctui_sigwinch_catch)
       {
-        ctui_get_window_size(&(state.columns), &(state.rows));
+        ctui_get_window_size(&(terminal_size.columns), &(terminal_size.rows));
       }
-      loop = !(ctui_editor_refresh_screen(&state, write_buffer) || ctui_editor_proccess_key(&state));
+      // loop = !(ctui_editor_refresh_screen(&terminal_size, write_buffer) || ctui_editor_proccess_key(&terminal_size));
+      loop = !ctui_editor_proccess_key(&terminal_size);
+      if (ctui_write_buffer_ready_to_write(&wb, td.delta_time))
+      {
+        loop = !ctui_editor_refresh_screen(&terminal_size, &(wb.data))
+        if (ctui_write_buffer_write(&wb))
+        {
+          loop = 0;
+        }
+      }
     }
   }
   // exit
@@ -64,7 +83,7 @@ int main (int argc, char **argv)
     }
     ctui_termios_exit(&original_termios);
   }
-  printf("columns: %d, rows: %d\n", state.columns, state.rows);
+  printf("columns: %d, rows: %d\n", terminal_size.columns, terminal_size.rows);
   printf("%d\n", (int)strlen("\u0077"));
   return 0;
 }
