@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <time.h>
 
+#include <dynamic_array.h>
 #include <ctui_time_check.h>
 struct ctui_write_buffer
 {
