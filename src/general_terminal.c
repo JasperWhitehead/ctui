@@ -110,7 +110,20 @@ int ctui_get_input_buffer_size(int *buffer_size)
   }
   return 0;
 }
-
+int ctui_process_read_buffer(char *sds_read_buffer)
+{
+  for (int i = 0; i < sds_da_get_size(sds_read_buffer); i++)
+  {
+    switch (sds_read_buffer[i])
+    {
+      case CTRL_KEY('q'):
+      {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
 /*
 void *ctui_thread_char_read(void *args)
 {

@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
 
 #include <dynamic_array.h>
 #include <ctui_general_terminal.h>
@@ -19,6 +20,10 @@ int main (int argc, char **argv)
   struct ctui_terminal_size terminal_size;
   struct ctui_write_buffer wb;
   struct ctui_time_data td;
+  struct ctui_read_thread_shared_data sd;
+  pthread_t read_thread;
+  char *input_buffer;
+  int input_buffer_updated;
   // startup
   {
     if (ctui_time_data_create(&td))
@@ -49,7 +54,14 @@ int main (int argc, char **argv)
     {
       loop = 0;
     }
-
+    if (ctui_read_thread_init(&sd, &read_thread))
+    {
+      loop = 0;
+    }
+    if (sds_da_create(&input_buffer, sizeof(char), 0))
+    {
+      loop = 0;
+    }
   }
   // loop
   {
@@ -63,11 +75,14 @@ int main (int argc, char **argv)
       {
         ctui_get_window_size(&(terminal_size.columns), &(terminal_size.rows));
       }
-      // loop = !(ctui_editor_refresh_screen(&terminal_size, write_buffer) || ctui_editor_proccess_key(&terminal_size));
-      loop = !ctui_editor_proccess_key(&terminal_size);
+      loop = loop && !ctui_read_thread_update(&sd, &input_buffer, &input_buffer_updated);
+      if (input_buffer_updated)
+      {
+        loop = loop && !ctui_process_read_buffer(input_buffer);
+      }
       if (ctui_write_buffer_ready_to_write(&wb, td.delta_time))
       {
-        if (ctui_editor_refresh_screen(&terminal_size, &(wb.data)))
+        if (ctui_editor_refresh_screen(&terminal_size, &(wb.sds_data)))
         {
           loop = 0;
         }
@@ -80,7 +95,9 @@ int main (int argc, char **argv)
   }
   // exit
   {
-    write(STDOUT_FILENO, "\x1b[2J\x1b[3J\x1b[H", 11);
+    ctui_read_thread_exit(&sd, &read_thread);
+    ctui_read_thread_free(&sd);
+    if (write(STDOUT_FILENO, "\x1b[2J\x1b[3J\x1b[H", 11)){}
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios) == -1)
     {
       return 1;

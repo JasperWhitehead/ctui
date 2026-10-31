@@ -25,6 +25,7 @@ int ctui_termios_exit(struct termios *original_termios);
 int ctui_get_cursor_position(int *columns, int *rows);
 int ctui_get_window_size(int *columns, int *rows);
 int ctui_get_input_buffer_size(int *buffer_size);
+int ctui_process_read_buffer(char *sds_read_buffer);
 /*
 struct ctui_thread_char_read_shared_data
 {
