@@ -80,11 +80,11 @@ int main (int argc, char **argv)
   }
   // exit
   {
-    if (write(STDOUT_FILENO, "\x1b[2J\x1b[3J\x1b[H", 11))
+    write(STDOUT_FILENO, "\x1b[2J\x1b[3J\x1b[H", 11);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios) == -1)
     {
-      
+      return 1;
     }
-    ctui_termios_exit(&original_termios);
   }
   printf("columns: %d, rows: %d\n", terminal_size.columns, terminal_size.rows);
   printf("%d\n", (int)strlen("\u0077"));

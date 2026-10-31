@@ -44,14 +44,6 @@ int ctui_sigwinch_init(void)
   }
   return 0;
 }
-int ctui_termios_exit(struct termios *original_termios)
-{
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, original_termios) == -1)
-  {
-    return 1;
-  }
-  return 0;
-}
 void ctui_termois_raw_mode_enable(struct termios *termios)
 {
   termios->c_iflag &= ~(BRKINT | IXON | ICRNL | INPCK | ISTRIP);

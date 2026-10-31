@@ -20,6 +20,19 @@ static inline void ctui_write_buffer_free(struct ctui_write_buffer *wb)
 }
 int ctui_write_buffer_write(struct ctui_write_buffer *wb);
 int ctui_write_buffer_ready_to_write(struct ctui_write_buffer *wb, double delta_time);
+struct ctui_read_thread_shared_data
+{
+  pthread_mutex_t read_mutex;
+  pthread_mutex_t signal_mutex;
+  char *sds_read_buffer;
+  int end;
+  int swap_buffers;
+};
+void *ctui_read_thread(void *sd);
+int ctui_read_thread_init(struct ctui_read_thread_shared_data *sd, pthread_t *thread);
+int ctui_read_thread_exit(struct ctui_read_thread_shared_data *sd, pthread_t *thread);
+int ctui_read_thread_free(struct ctui_read_thread_shared_data *sd);
+int ctui_read_thread_update(struct ctui_read_thread_shared_data *sd, char **buffer);
 /*
 struct ctui_write_thread_shared_data
 {
